@@ -67,11 +67,35 @@ namespace Internal{
     template<typename T>
     struct is_raw_pointer;
 
+    //there is no need for defining a path for each structure, rather let's exploit an objects iterable nature.
+    template <typename T, typename = void>
+    struct is_iterable : std::false_type{};
+
+    template<typename T>
+    struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())), decltype(std::end(std::declval<T>()))>>
+    : std::true_type{};
+
+    template<typename T>
+    constexpr bool is_iterable_v = is_iterable<T>::value;
+
+    template<typename T, typename = void>
+    struct has_size : std::false_type{};
+
+    template <typename T>
+    struct has_size<T, std::void_t<decltype(std::declval<T>().size())>>
+    : std::true_type{};
+
+    template<typename T>
+    constexpr bool has_size_v = has_size<T>::value;
+
     template<typename K, typename V>
     void StoreVectorPair(std::vector<std::pair<K,V>>, const char*); //distinguish between vector pair vs lone vector for loadunorderdmap internal
     
     template<typename K, typename V>
     void StoreUnorderedMap(std::unordered_map<K, V>, StorageInterface&);
+
+    template<typename Structure>
+    void StoreIterable(Structure&, StorageInterface&);
 }
 
 
@@ -79,15 +103,23 @@ auto GetKeyArray(CacheMeta cacheMetaData)
     -> std::optional<KeyIndexEntry*>;
 
 
-template<typename Structure>
-void StoreToCache(Structure loadingStruct, StorageInterface& storage){
-    if constexpr(CacheRW::Internal::is_map<Structure>::value)
-        CacheRW::Internal::StoreUnorderedMap(loadingStruct, storage);
-    else if constexpr(CacheRW::Internal::is_vector<Structure>::value)
-        CacheRW::Internal::StoreVectorPair(loadingStruct, storage.getLabel().c_str(), storage);
-    else
-        std::cout << "Unsupported loading structure\n";
+// template<typename Structure>
+// void StoreToCache(Structure loadingStruct, StorageInterface& storage){
+//     if constexpr(CacheRW::Internal::is_map<Structure>::value)
+//         CacheRW::Internal::StoreUnorderedMap(loadingStruct, storage);
+//     else if constexpr(CacheRW::Internal::is_vector<Structure>::value)
+//         CacheRW::Internal::StoreVectorPair(loadingStruct, storage.getLabel().c_str(), storage);
+//     else
+//         std::cout << "Unsupported loading structure\n";
 
+// }
+
+template<typename Structure>
+void StoreToCache(Structure Object, StorageInterface& storage){
+    if constexpr(CacheRW::Internal::is_iterable_v<Structure>)
+        CacheRW::Internal::StoreIterable(Object, storage);
+    else
+        std::cout << "Unsupported input structure; currently only accept iterable paired structs.\n";
 }
 
 

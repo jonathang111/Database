@@ -37,7 +37,7 @@ std::optional<CacheMeta> ReadCacheMetaData(StorageInterface& storage){ //optiona
     CacheHeader header;
 
     if(!storage.isOpen()){ //maybe remove or somehow add name of file.
-        std::cout << "Could not open file\n";
+        std::cout << "Could not open: " << storage.getLabel() << std::endl;
          return {};
     }
     storage.seek(0);
